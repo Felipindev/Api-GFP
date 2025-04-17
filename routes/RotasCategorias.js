@@ -1,7 +1,10 @@
 import { BD } from "../db.js";
+import jwt from "jsonwebtoken";
+
+const secretKey = "chave-secreta";
 
 class RotasCategorias {
-    static async novaCategoria(req,res) {
+    static async nova(req,res) {
         const { nome, tipo_transacao, gasto_fixo, id_usuario } = req.body;
         try {
             const categoria = await BD.query(`INSERT INTO categorias (nome, tipo_transacao, gasto_fixo, id_usuario)
@@ -14,7 +17,7 @@ class RotasCategorias {
         }
     }
 
-    static async listarCategorias(req, res) {
+    static async listar(req, res) {
         try {
             const categorias = await BD.query(`SELECT * FROM categorias where ativo = true`);;
             res.status(200).json(categorias.rows);
@@ -24,7 +27,7 @@ class RotasCategorias {
         }
     }
 
-    static async listarCategoriasPorId(req,res){
+    static async listarPorID(req,res){
         const { id_categoria } = req.params;
         try {
             const categoria = await BD.query(`SELECT ct. *, u.nome AS nome_usuario FROM categorias AS ct
@@ -40,7 +43,7 @@ class RotasCategorias {
         }
     }
 
-    static async atualizarTodosCampos(req,res) {
+    static async atualizarTodos(req,res) {
         const { id_categoria } = req.params;
         const { nome, tipo_transacao, gasto_fixo, ativo } = req.body;
 
@@ -103,7 +106,7 @@ class RotasCategorias {
         }
     }
 
-    static async exclusao(req,res) {
+    static async deletar(req,res) {
         const {id_categoria} = req.params;
         try {
             const resultado = await BD.query(`UPDATE categorias SET ativo = false WHERE id_categoria = ${id_categoria} RETURNING *`);
@@ -116,5 +119,23 @@ class RotasCategorias {
             res.status(500).json({ error: "Erro ao excluir a categoria" });
         }
     }
+}
+
+export function autenticarToken2(req, res, next){
+    //extrair o token do cabeçalho da requisição
+    const token = req.headers['authorization'] //bearer<token>
+
+    //verificar se o token foi fornecido na requisição
+    if (!token) return res.status(403).json({message: 'Token não fornecido'})
+
+    //verificar se o token é válido
+    jwt.verify(token.split(' ')[1], secretKey, (err, categoria ) => {
+        if(err) return res.status(403).json({mensagem: 'Token inválido'})
+
+        //se o token é válido, adiciona os dados do usuario (decoficados no token)
+        //tornando essas informações disponíveis nas rotas que precisam da autenticação
+        req.categoria = categoria;
+        next(); //continua para a próxima rota
+    })
 }
 export default RotasCategorias;

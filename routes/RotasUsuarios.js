@@ -75,7 +75,7 @@ class RotasUsuarios {
             res.status(500).json({ error: "Erro ao fazer login" });
         }
     }
-    static async atualizarTodosCampos(req,res) {
+    static async atualizarTodos(req,res) {
         const { id_usuario } = req.params;
         const { nome, email, senha, tipo_acesso } = req.body;
         const saltRounds = 10;

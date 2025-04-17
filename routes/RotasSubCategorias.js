@@ -1,7 +1,9 @@
 import { BD } from "../db.js";
+import jwt from "jsonwebtoken";
+const secretKey = "chave-secreta";
  
 class RotasSubCategorias {
-    static async novaSubCategoria(req, res) {
+    static async nova(req, res) {
         const {nome, id_categoria, gasto_fixo, ativo } = req.body;
         try {
             const subcategoria = await BD.query(`INSERT INTO subcategorias (nome, id_categoria, gasto_fixo, ativo)
@@ -13,7 +15,7 @@ class RotasSubCategorias {
         }
     }
 
-    static async listarSubCategorias(req, res) {
+    static async listar(req, res) {
         try {
             const subcategorias = await BD.query(`SELECT * FROM subcategorias where ativo = true`);
             res.status(200).json(subcategorias.rows);
@@ -23,7 +25,7 @@ class RotasSubCategorias {
         }
     }
 
-    static async listarSubCategoriasPorId(req,res){
+    static async listarPorID(req,res){
         const { id_subcategoria } = req.params;
         try {
             const subcategoria = await BD.query(`SELECT sc. *, c.nome AS nome FROM subCategorias AS sc
@@ -39,7 +41,7 @@ class RotasSubCategorias {
         }
     }
 
-    static async atualizarTodosCampos(req,res){
+    static async atualizarTodos(req,res){
         const { id_subcategoria } = req.params;
         const { nome, id_categoria, gasto_fixo, ativo } = req.body;
 
@@ -98,7 +100,7 @@ class RotasSubCategorias {
         }
     }
 
-    static async exclusao(req,res){
+    static async deletar(req,res){
         const { id_subcategoria } = req.params;
         try {
             const resultado = await BD.query(`UPDATE subcategorias SET ativo = false WHERE id_categoria = ${id_subcategoria} RETURNING *`);
@@ -111,5 +113,23 @@ class RotasSubCategorias {
             res.status(500).json({ error: "Erro ao excluir a subCategoria" });
         }
     }
+}
+
+export function autenticarToken3(req, res, next){
+    //extrair o token do cabeçalho da requisição
+    const token = req.headers['authorization'] //bearer<token>
+
+    //verificar se o token foi fornecido na requisição
+    if (!token) return res.status(403).json({message: 'Token não fornecido'})
+
+    //verificar se o token é válido
+    jwt.verify(token.split(' ')[1], secretKey, (err, subcategoria ) => {
+        if(err) return res.status(403).json({mensagem: 'Token inválido'})
+
+        //se o token é válido, adiciona os dados do usuario (decoficados no token)
+        //tornando essas informações disponíveis nas rotas que precisam da autenticação
+        req.subcategoria = subcategoria;
+        next(); //continua para a próxima rota
+    })
 }
 export default RotasSubCategorias;
